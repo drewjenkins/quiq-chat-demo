@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Chat feedback demo</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<script src="https://seven.goquiq.com/app/chat-ui/index.js" charset="UTF-8"></script>
+<script src="./feedback-panel.js"></script>
+</head><body style="font-family:Helvetica,Arial,sans-serif;padding:40px;background:#fafafa">
+<h1>Chat feedback demo</h1><p>Tap the chat button (bottom right), send a message, then tap X and end the chat.</p>
+<script>
+  window.chat = Quiq({ pageConfigurationId: 'decagon-demo' });
+  window.panel = QuiqFeedbackPanel.attach(window.chat, {
+    debug: false,
+    fields: {
+      shown: 'schema.conversation.custom.feedbackShown',
+      answered: 'schema.conversation.custom.feedbackAnswered',
+      thumb: 'schema.conversation.custom.feedbackThumb',
+      comment: 'schema.conversation.custom.feedbackComment'
+    }
+  });
+</script>
+</body></html>
