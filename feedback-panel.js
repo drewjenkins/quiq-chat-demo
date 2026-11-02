@@ -200,6 +200,19 @@
       if (d.visibilityStatus === 'closed' && (d.actions || []).indexOf('conversationEnded') !== -1) show();
     });
 
+    // The bot ended the chat itself: its goodbye carries an invisible marker (U+2063) on the plain text.
+    // The bot holds the conversation open for up to 2 minutes, so we can still save the answers.
+    var seenGoodbye = {};
+    chat.on('webchatTranscriptChanged', function (e) {
+      var items = (e && e.data && e.data.transcript) || [];
+      var last = items[items.length - 1];
+      if (!last || !last.authorDetails || !last.authorDetails.isBot) return;
+      if (typeof last.text !== 'string' || last.text.slice(-1) !== '\u2063' || seenGoodbye[last.id]) return;
+      seenGoodbye[last.id] = true;
+      if (opts.debug) console.log('[qfp] bot goodbye seen', last.id);
+      setTimeout(function () { chat.hide(); show(); }, opts.goodbyeDelayMs || 2500); // let them read the goodbye first
+    });
+
     return { show: show, close: close };
   }
 
