@@ -91,7 +91,15 @@
       chat.setChatRegistrationField(field, value);
     }
 
+    var completed = false;
+    function complete() {
+      if (completed || !f.complete) return;
+      completed = true;
+      save(f.complete, 'yes'); // tells the bot it can close the conversation now
+    }
+
     function close() {
+      complete();
       if (!open) return;
       var p = open; open = null;
       p.classList.remove('in');
@@ -100,6 +108,7 @@
 
     function show() {
       if (open) return;
+      completed = false;
       var r = lastRect || { right: 20, bottom: 90, width: 380, height: 620 };
       var p = el(
         '<div class="qfp" role="dialog" aria-label="Feedback">' +
@@ -145,6 +154,7 @@
       send.addEventListener('click', function () {
         var c = p.querySelector('textarea').value.trim();
         if (c && more.classList.contains('open')) save(f.comment, c);
+        complete();
         p.querySelector('.qfp-body').outerHTML =
           '<div class="qfp-done"><svg class="qfp-chk" viewBox="0 0 84 84" aria-hidden="true">' +
           '<circle class="burst" cx="42" cy="42" r="38" fill="none" stroke="#17B26A" stroke-width="2"/>' +
