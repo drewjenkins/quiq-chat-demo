@@ -28,10 +28,14 @@
     '.qfp-opt{flex:1;font:inherit;font-size:15px;font-weight:600;padding:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;',
     'background:#fff;color:#00206A;border:0;border-radius:999px;box-shadow:0 6px 16px -10px rgba(3,23,75,.4);transition:background .15s,color .15s,transform .1s}',
     '.qfp-opt:active{transform:scale(.97)}',
-    '.qfp-thumbs .qfp-opt{border-radius:20px;padding:18px}.qfp-opt svg{width:30px;height:30px}',
     '.qfp-opt[aria-pressed="true"]{background:#00206A;color:#fff}',
-    '.qfp-opt.up[aria-pressed="true"]{background:#17B26A}',
-    '.qfp-opt.down[aria-pressed="true"]{background:#03174B;color:#FFCD76}',
+    '.qfp-stars{display:flex;gap:8px;margin-bottom:6px}',
+    '.qfp-star{flex:1;display:grid;place-items:center;padding:12px 0;border:0;border-radius:16px;cursor:pointer;background:#fff;color:#DCE1FF;',
+    'box-shadow:0 6px 16px -10px rgba(3,23,75,.4);transition:color .12s,transform .12s}',
+    '.qfp-star svg{width:30px;height:30px}.qfp-star svg path{fill:currentColor;stroke:#00206A;stroke-width:1.2;stroke-linejoin:round}',
+    '.qfp-star.lit{color:#FFCD76}.qfp-star.picked{animation:qfp-bump .28s ease-out}',
+    '@keyframes qfp-bump{50%{transform:scale(1.18)}}',
+    '.qfp-hint{min-height:18px;margin:0 0 18px;font-size:13.5px;font-weight:600;color:#5C6170;text-align:center}',
     '.qfp-more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease}.qfp-more.open{grid-template-rows:1fr}.qfp-more>div{overflow:hidden}',
     '.qfp label{display:block;font-size:14px;font-weight:600;margin:0 0 8px;color:#03174B}',
     '.qfp textarea{width:100%;min-height:84px;resize:none;font:inherit;font-size:14.5px;padding:11px 12px;border:0;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1.5px #DCE1FF;margin-bottom:4px}',
@@ -53,6 +57,7 @@
 
   var ICON = {
     x: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.6 4.4 1.1 6.2L12 17.1 6.4 20l1.1-6.2L2.9 9.4l6.3-.9z"/></svg>',
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 10v10H4V10h3zM7 10l4-7c1.4 0 2.3 1.2 2 2.6L12.4 9H18a2 2 0 0 1 2 2.3l-1.2 6.6A2.5 2.5 0 0 1 16.3 20H7"/></svg>',
     down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 14V4H4v10h3zM7 14l4 7c1.4 0 2.3-1.2 2-2.6L12.4 15H18a2 2 0 0 0 2-2.3l-1.2-6.6A2.5 2.5 0 0 0 16.3 4H7"/></svg>'
   };
@@ -119,9 +124,11 @@
             '<p class="qfp-q">Did we answer your question?</p>' +
             '<div class="qfp-row"><button class="qfp-opt" data-k="answered" data-v="yes" aria-pressed="false">Yes</button>' +
               '<button class="qfp-opt" data-k="answered" data-v="no" aria-pressed="false">No</button></div>' +
-            '<p class="qfp-q">How was this chat?</p>' +
-            '<div class="qfp-row qfp-thumbs"><button class="qfp-opt up" data-k="thumb" data-v="up" aria-pressed="false" aria-label="Thumbs up">' + ICON.up + '</button>' +
-              '<button class="qfp-opt down" data-k="thumb" data-v="down" aria-pressed="false" aria-label="Thumbs down">' + ICON.down + '</button></div>' +
+            '<p class="qfp-q">How would you rate this chat?</p>' +
+            '<div class="qfp-stars" role="radiogroup" aria-label="Rating">' + [1, 2, 3, 4, 5].map(function (n) {
+              return '<button class="qfp-star" role="radio" aria-checked="false" data-v="' + n + '" aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + ICON.star + '</button>';
+            }).join('') + '</div>' +
+            '<p class="qfp-hint" aria-live="polite"></p>' +
             '<div class="qfp-more"><div><label for="qfp-c">What could we do better?</label><textarea id="qfp-c" maxlength="1000" placeholder="Optional"></textarea></div></div>' +
             '<div class="qfp-sp"></div>' +
             '<button class="qfp-send" disabled>Send feedback</button>' +
@@ -139,14 +146,34 @@
       var state = {};
       var more = p.querySelector('.qfp-more');
       var send = p.querySelector('.qfp-send');
+      var hint = p.querySelector('.qfp-hint');
+      var stars = p.querySelectorAll('.qfp-star');
+      var WORDS = ['', 'Poor', 'Not great', 'Okay', 'Good', 'Great'];
+      function light(n) { stars.forEach(function (s, i) { s.classList.toggle('lit', i < n); }); hint.textContent = WORDS[n] || ''; }
+      function refresh() {
+        more.classList.toggle('open', state.answered === 'no' || (state.rating && state.rating <= 3));
+        send.disabled = !(state.answered && state.rating);
+      }
       p.querySelectorAll('.qfp-opt').forEach(function (b) {
         b.addEventListener('click', function () {
           var k = b.getAttribute('data-k');
           p.querySelectorAll('.qfp-opt[data-k="' + k + '"]').forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
           state[k] = b.getAttribute('data-v');
           save(f[k], state[k]); // save each tap now, so a slow customer loses at most the comment
-          more.classList.toggle('open', state.answered === 'no' || state.thumb === 'down');
-          send.disabled = !(state.answered && state.thumb);
+          refresh();
+        });
+      });
+      stars.forEach(function (s) {
+        var n = Number(s.getAttribute('data-v'));
+        s.addEventListener('mouseenter', function () { light(n); });
+        s.addEventListener('mouseleave', function () { light(state.rating || 0); });
+        s.addEventListener('click', function () {
+          state.rating = n;
+          stars.forEach(function (o) { o.setAttribute('aria-checked', o === s ? 'true' : 'false'); o.classList.remove('picked'); });
+          void s.offsetWidth; s.classList.add('picked');
+          light(n);
+          save(f.rating, n);
+          refresh();
         });
       });
       p.querySelector('.qfp-x').addEventListener('click', close);
@@ -160,7 +187,9 @@
           '<circle class="burst" cx="42" cy="42" r="38" fill="none" stroke="#17B26A" stroke-width="2"/>' +
           '<circle class="ring" cx="42" cy="42" r="36" fill="none" stroke="#17B26A" stroke-width="4" stroke-linecap="round" transform="rotate(-90 42 42)"/>' +
           '<path class="tick" d="M27 43l10 10 20-21" fill="none" stroke="#17B26A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          '<h3>Thanks for your feedback</h3><p>It helps us make this chat better.</p></div>';
+          (state.answered === 'yes' && state.rating >= 4
+            ? '<h3>Thanks so much!</h3><p>We\'re glad we could help today. Take care, and we\'re here whenever you need us.</p></div>'
+            : '<h3>Thank you for telling us</h3><p>We read every response and use it to do better. We\'re here whenever you need us.</p></div>');
         setTimeout(close, opts.thanksMs || 3500);
       });
     }
