@@ -113,7 +113,7 @@
       var p = el(
         '<div class="qfp" role="dialog" aria-label="Feedback">' +
           '<div class="qfp-hd"><div class="qfp-av">' + esc(opts.avatar || 'P') + '</div>' +
-            '<div class="qfp-ttl"><b>' + esc(opts.title || 'Prog assistant') + '</b><span>' + esc(opts.subtitle || 'Here to help with your lease') + '</span></div>' +
+            '<div class="qfp-ttl"><b>' + esc(opts.title || 'Progressive') + '</b><span>' + esc(opts.subtitle || 'Here to help with your lease') + '</span></div>' +
             '<button class="qfp-x" aria-label="Close">' + ICON.x + '</button></div>' +
           '<div class="qfp-body">' +
             '<p class="qfp-q">Did we answer your question?</p>' +
